@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "cstdint": "cpp",
+        "*.tcc": "cpp",
+        "type_traits": "cpp"
+    }
+}
