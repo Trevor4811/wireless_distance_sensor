@@ -21,6 +21,11 @@ class MainClass
 public:
 	MainClass() : distanceSensor1{DistanceTrigger1_GPIO_Port, DistanceTrigger1_Pin}, distanceSensor2{DistanceTrigger2_GPIO_Port, DistanceTrigger2_Pin}
 	{
+		// Runs before HAL initialization!!!
+	}
+
+	// init function runs after peripheral initialization
+	void init() {
 		distanceIntervalTimer.start();
 		radioDriver.tx_init(2500, _1Mbps);
 	}
@@ -95,6 +100,7 @@ private:
 
 void CppMain()
 {
+	g_mainClass.init();
 	while (1)
 	{
 		g_mainClass.service();
