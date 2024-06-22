@@ -208,8 +208,6 @@ void EXTI9_5_IRQHandler(void)
 
   /* USER CODE END EXTI9_5_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(NRF_IRQ_Pin);
-  HAL_GPIO_EXTI_IRQHandler(DistanceEcho2_Pin);
-  HAL_GPIO_EXTI_IRQHandler(DistanceEcho1_Pin);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
   /* USER CODE END EXTI9_5_IRQn 1 */

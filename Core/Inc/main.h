@@ -78,16 +78,6 @@ void CppMain();
 #define NRF_IRQ_Pin GPIO_PIN_6
 #define NRF_IRQ_GPIO_Port GPIOC
 #define NRF_IRQ_EXTI_IRQn EXTI9_5_IRQn
-#define DistanceTrigger2_Pin GPIO_PIN_9
-#define DistanceTrigger2_GPIO_Port GPIOC
-#define DistanceEcho2_Pin GPIO_PIN_8
-#define DistanceEcho2_GPIO_Port GPIOA
-#define DistanceEcho2_EXTI_IRQn EXTI9_5_IRQn
-#define DistanceEcho1_Pin GPIO_PIN_9
-#define DistanceEcho1_GPIO_Port GPIOA
-#define DistanceEcho1_EXTI_IRQn EXTI9_5_IRQn
-#define DistanceTrigger1_Pin GPIO_PIN_10
-#define DistanceTrigger1_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14

@@ -3,14 +3,12 @@
  *
  *  Created on: 2021. 7. 20.
  *      Author: mokhwasomssi
- * 
+ *
  * https://github.com/mokhwasomssi/stm32_hal_nrf24l01p/tree/main
  *
  */
 
-
 #include "nrf24l01p.hpp"
-
 
 static void cs_high()
 {
@@ -60,7 +58,6 @@ static uint8_t write_register(uint8_t reg, uint8_t value)
     return write_val;
 }
 
-
 /* nRF24L01+ Main Functions */
 void nrf24l01p::rx_init(channel MHz, air_data_rate bps)
 {
@@ -80,7 +77,7 @@ void nrf24l01p::rx_init(channel MHz, air_data_rate bps)
 
     auto_retransmit_count(3);
     auto_retransmit_delay(250);
-    
+
     ce_high();
 }
 
@@ -104,7 +101,7 @@ void nrf24l01p::tx_init(channel MHz, air_data_rate bps)
     ce_high();
 }
 
-ErrorCode nrf24l01p::rx_receive(uint8_t* rx_payload)
+ErrorCode nrf24l01p::rx_receive(uint8_t *rx_payload)
 {
     read_rx_fifo(rx_payload);
     clear_rx_dr();
@@ -113,7 +110,7 @@ ErrorCode nrf24l01p::rx_receive(uint8_t* rx_payload)
     return ErrorCode::OKAY;
 }
 
-ErrorCode nrf24l01p::tx_transmit(uint8_t* tx_payload)
+ErrorCode nrf24l01p::tx_transmit(uint8_t *tx_payload)
 {
     // TODO wait for interrupt indicating ack (include timeout)
     write_tx_fifo(tx_payload);
@@ -125,8 +122,8 @@ void nrf24l01p::tx_irq()
     uint8_t tx_ds = get_status();
     tx_ds &= 0x20;
 
-    if(tx_ds)
-    {   
+    if (tx_ds)
+    {
         // TX_DS
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
         clear_tx_ds();
@@ -188,7 +185,7 @@ void nrf24l01p::ptx_mode()
     write_register(NRF24L01P_REG_CONFIG, new_config);
 }
 
-uint8_t nrf24l01p::read_rx_fifo(uint8_t* rx_payload)
+uint8_t nrf24l01p::read_rx_fifo(uint8_t *rx_payload)
 {
     uint8_t command = NRF24L01P_CMD_R_RX_PAYLOAD;
     uint8_t status;
@@ -201,7 +198,7 @@ uint8_t nrf24l01p::read_rx_fifo(uint8_t* rx_payload)
     return status;
 }
 
-uint8_t nrf24l01p::write_tx_fifo(uint8_t* tx_payload)
+uint8_t nrf24l01p::write_tx_fifo(uint8_t *tx_payload)
 {
     uint8_t command = NRF24L01P_CMD_W_TX_PAYLOAD;
     uint8_t status;
@@ -209,7 +206,7 @@ uint8_t nrf24l01p::write_tx_fifo(uint8_t* tx_payload)
     cs_low();
     HAL_SPI_TransmitReceive(NRF24L01P_SPI, &command, &status, 1, 2000);
     HAL_SPI_Transmit(NRF24L01P_SPI, tx_payload, NRF24L01P_PAYLOAD_LENGTH, 2000);
-    cs_high(); 
+    cs_high();
 
     return status;
 }
@@ -241,7 +238,7 @@ uint8_t nrf24l01p::get_status()
 
     cs_low();
     HAL_SPI_TransmitReceive(NRF24L01P_SPI, &command, &status, 1, 2000);
-    cs_high(); 
+    cs_high();
 
     return status;
 }
@@ -269,7 +266,7 @@ void nrf24l01p::clear_tx_ds()
     uint8_t new_status = get_status();
     new_status |= 0x20;
 
-    write_register(NRF24L01P_REG_STATUS, new_status);     
+    write_register(NRF24L01P_REG_STATUS, new_status);
 }
 
 void nrf24l01p::clear_max_rt()
@@ -277,7 +274,7 @@ void nrf24l01p::clear_max_rt()
     uint8_t new_status = get_status();
     new_status |= 0x10;
 
-    write_register(NRF24L01P_REG_STATUS, new_status); 
+    write_register(NRF24L01P_REG_STATUS, new_status);
 }
 
 void nrf24l01p::power_up()
@@ -299,17 +296,17 @@ void nrf24l01p::power_down()
 void nrf24l01p::set_crc_length(length bytes)
 {
     uint8_t new_config = read_register(NRF24L01P_REG_CONFIG);
-    
-    switch(bytes)
+
+    switch (bytes)
     {
-        // CRCO bit in CONFIG resiger set 0
-        case 1:
-            new_config &= 0xFB;
-            break;
-        // CRCO bit in CONFIG resiger set 1
-        case 2:
-            new_config |= 1 << 2;
-            break;
+    // CRCO bit in CONFIG resiger set 0
+    case 1:
+        new_config &= 0xFB;
+        break;
+    // CRCO bit in CONFIG resiger set 1
+    case 2:
+        new_config |= 1 << 2;
+        break;
     }
 
     write_register(NRF24L01P_REG_CONFIG, new_config);
@@ -323,7 +320,7 @@ void nrf24l01p::set_address_widths(widths bytes)
 void nrf24l01p::auto_retransmit_count(count cnt)
 {
     uint8_t new_setup_retr = read_register(NRF24L01P_REG_SETUP_RETR);
-    
+
     // Reset ARC register 0
     new_setup_retr |= 0xF0;
     new_setup_retr |= cnt;
@@ -342,7 +339,7 @@ void nrf24l01p::auto_retransmit_delay(delay us)
 
 void nrf24l01p::set_rf_channel(channel MHz)
 {
-	uint16_t new_rf_ch = MHz - 2400;
+    uint16_t new_rf_ch = MHz - 2400;
     write_register(NRF24L01P_REG_RF_CH, new_rf_ch);
 }
 
@@ -358,17 +355,17 @@ void nrf24l01p::set_rf_air_data_rate(air_data_rate bps)
 {
     // Set value to 0
     uint8_t new_rf_setup = read_register(NRF24L01P_REG_RF_SETUP) & 0xD7;
-    
-    switch(bps)
+
+    switch (bps)
     {
-        case _1Mbps: 
-            break;
-        case _2Mbps: 
-            new_rf_setup |= 1 << 3;
-            break;
-        case _250kbps:
-            new_rf_setup |= 1 << 5;
-            break;
+    case _1Mbps:
+        break;
+    case _2Mbps:
+        new_rf_setup |= 1 << 3;
+        break;
+    case _250kbps:
+        new_rf_setup |= 1 << 5;
+        break;
     }
     write_register(NRF24L01P_REG_RF_SETUP, new_rf_setup);
 }

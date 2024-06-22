@@ -1,4 +1,8 @@
 Debug/
+Release/
+.metadata
+
+*.launch
 
 # Prerequisites
 *.d

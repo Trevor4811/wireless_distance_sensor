@@ -16,7 +16,7 @@ TimeHoursUs getUptime()
     return {g_uptimeHours, __HAL_TIM_GET_COUNTER(&htim2)};
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *)
 {
     g_uptimeHours++;
 }

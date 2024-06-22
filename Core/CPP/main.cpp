@@ -13,47 +13,48 @@
 #include <iostream>
 
 #include <jsn_sr04t_2_0.hpp>
-#include <nrf24l01p.hpp>
+#include "nrf24l01p.hpp"
 #include <time_utils.hpp>
 
 class MainClass
 {
 public:
-	MainClass() : distanceSensor1{DistanceTrigger1_GPIO_Port, DistanceTrigger1_Pin}, distanceSensor2{DistanceTrigger2_GPIO_Port, DistanceTrigger2_Pin}
+	// init function runs after peripheral initialization
+	void init()
 	{
-		distanceIntervalTimer.start();
 		radioDriver.tx_init(2500, _1Mbps);
+		m_state = State::WAIT_FOR_START_ACK;
+		blinkTimer.start();
 	}
 
 	// service function called every period
 	void service()
 	{
-		//		sprintf(buffer, "distance ready 1: %.6f\r\n", distanceSensor1.getLatestDistance_in());
-		distanceSensor1.startRanging();
-		if (distanceSensor1.newDistanceReady())
+		switch (m_state)
 		{
-			distanceMeasurementCount1++;
-			distanceSum1 += distanceSensor1.getLatestDistance_in();
+		case State::WAIT_FOR_START_ACK:
+			// transmit start packet
+			DistanceSensorPacket_t pkt;
+			memcpy(&pkt, &syncPacket, sizeof(DistanceSensorPacket_t));
+			radioDriver.tx_transmit(reinterpret_cast<uint8_t *>(&pkt));
+			sleepUs(500); // distance node must receive within 10 ms of wakeup
+			break;
+		case State::RECEIVING_DISTANCES:
+			sleepMs(100); // interrupt based
+			// timeout if distance not received in a while
+			if (lastRxPacketTimer.getTime().us == DISTANCE_NOT_RECEIVED_TIMEOUT_MS * 1000)
+			{
+				// assume distance node turned off
+				m_state = State::WAIT_FOR_START_ACK;
+				radioDriver.flush_rx_fifo();
+				radioDriver.power_down();
+				radioDriver.tx_init(2500, _1Mbps);
+			}
+			break;
 		}
-		distanceSensor2.startRanging();
-		if (distanceSensor2.newDistanceReady())
-		{
-			distanceMeasurementCount2++;
-			distanceSum2 += distanceSensor2.getLatestDistance_in();
-		}
-		if (distanceIntervalTimer.getTime().us >= SAMPLE_PERIOD_MS * 1000)
-		{
-			distanceIntervalTimer.start();
-			char buffer[100];
-			float avg_dist1 = distanceSum1 / distanceMeasurementCount1;
-			float avg_dist2 = distanceSum2 / distanceMeasurementCount2;
-			sprintf(buffer, "distance 1: %.4f, sample count = %lu\tdistance 2: %.4f, sample count = %lu\r\n", avg_dist1, distanceMeasurementCount1, avg_dist2, distanceMeasurementCount2);
-			HAL_UART_Transmit(&huart2, reinterpret_cast<const uint8_t *>(buffer), strlen(buffer), 1000);
-			radioDriver.tx_transmit((uint8_t*)&avg_dist1);
-			distanceSum1 = 0;
-			distanceMeasurementCount1 = 0;
-			distanceSum2 = 0;
-			distanceMeasurementCount2 = 0;
+		if (blinkTimer.getTime().us >= BLINK_PERIOD_US) {
+			blinkTimer.reset();
+			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 		}
 	}
 
@@ -62,39 +63,54 @@ public:
 		char buffer[100];
 		switch (gpioPin)
 		{
-		case DistanceEcho1_Pin:
-			// signal distance sensor 1 interrupt
-			distanceSensor1.interruptHandler();
-			break;
-		case DistanceEcho2_Pin:
-			// signal distance sensor 2 interrupt
-			distanceSensor2.interruptHandler();
-			break;
 		case NRF_IRQ_Pin:
-			radioDriver.tx_irq();
+			if (m_state == State::WAIT_FOR_START_ACK)
+			{
+				radioDriver.tx_irq();
+				// ack received
+				m_state = State::RECEIVING_DISTANCES;
+				radioDriver.flush_tx_fifo();
+				radioDriver.power_down();
+				radioDriver.rx_init(2500, _1Mbps);
+				lastRxPacketTimer.start();
+			}
+			else if (m_state == State::RECEIVING_DISTANCES)
+			{
+				radioDriver.rx_receive(reinterpret_cast<uint8_t *>(&latestPacket));
+				sprintf(buffer, "Received Distance: %.4f, Sensor: %u\r\n", latestPacket.distance_in, latestPacket.distanceSensorNum);
+				HAL_UART_Transmit(&huart2, reinterpret_cast<const uint8_t *>(buffer), strlen(buffer), 1000);
+				lastRxPacketTimer.start();
+			}
+			break;
+
 		default:
-			sprintf(buffer, "Default: %u\n", gpioPin);
+			sprintf(buffer, "Default: %u\r\n", gpioPin);
 			HAL_UART_Transmit(&huart2, reinterpret_cast<const uint8_t *>(buffer), strlen(buffer), 1000);
 			break;
 		}
 	}
 
 private:
-	// distance sensing
-	JsnSr04t2 distanceSensor1;
-	JsnSr04t2 distanceSensor2;
-	uint32_t distanceMeasurementCount1 = 0;
-	float distanceSum1 = 0;
-	uint32_t distanceMeasurementCount2 = 0;
-	float distanceSum2 = 0;
-	static constexpr uint32_t SAMPLE_PERIOD_MS = 250;
-	Stopwatch distanceIntervalTimer;
+	static constexpr uint32_t BLINK_PERIOD_US = 500*1000;
+	Stopwatch blinkTimer;
 
 	nrf24l01p radioDriver;
+
+	DistanceSensorPacket_t latestPacket = {0, 0};
+
+	static constexpr uint32_t DISTANCE_NOT_RECEIVED_TIMEOUT_MS = 5000;
+	Stopwatch lastRxPacketTimer;
+
+	enum class State : uint8_t
+	{
+		WAIT_FOR_START_ACK,	 // wait for the ack to the start command
+		RECEIVING_DISTANCES, // receive distance measurements
+	} m_state = State::WAIT_FOR_START_ACK;
 } g_mainClass;
 
 void CppMain()
 {
+	g_mainClass.init();
 	while (1)
 	{
 		g_mainClass.service();

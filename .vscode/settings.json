@@ -2,6 +2,7 @@
     "files.associations": {
         "cstdint": "cpp",
         "*.tcc": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "streambuf": "cpp"
     }
 }
