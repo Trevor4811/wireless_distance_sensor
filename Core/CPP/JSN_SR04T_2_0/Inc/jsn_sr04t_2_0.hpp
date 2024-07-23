@@ -57,4 +57,3 @@ private:
 };
 
 #endif /* JSN_SR04T_2_0_INC_JSN_SR04T_2_0_HPP_ */
-

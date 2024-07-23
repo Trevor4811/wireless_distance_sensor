@@ -16,6 +16,16 @@
 #include <stdbool.h>
 #include "enums.hpp"
 
+typedef struct DistanceSensorPacket
+{
+    uint8_t distanceSensorNum;
+    float distance_in;
+
+    bool operator == (const DistanceSensorPacket other)  {
+        return this->distanceSensorNum == other.distanceSensorNum && this->distance_in == other.distance_in;
+    }
+} DistanceSensorPacket_t;
+
 /* User Configurations */
 #define NRF24L01P_SPI (&hspi2)
 
@@ -28,8 +38,8 @@
 #define NRF24L01P_IRQ_PIN_PORT NRF_IRQ_GPIO_Port
 #define NRF24L01P_IRQ_PIN_NUMBER NRF_IRQ_Pin
 
-#define NRF24L01P_PAYLOAD_LENGTH 4 // 1 - 32bytes
-
+#define NRF24L01P_PAYLOAD_LENGTH sizeof(DistanceSensorPacket_t) // 1 - 32bytes
+static_assert(NRF24L01P_PAYLOAD_LENGTH <= 32);
 
 /* nRF24L01+ Commands */
 #define NRF24L01P_CMD_R_REGISTER 0b00000000
@@ -72,7 +82,6 @@
 #define NRF24L01P_REG_DYNPD 0x1C
 #define NRF24L01P_REG_FEATURE 0x1D
 
-
 /* nRF24L01+ typedefs */
 typedef uint8_t count;
 typedef uint8_t widths;
@@ -95,6 +104,8 @@ typedef enum
     _18dBm = 0
 } output_power;
 
+static constexpr DistanceSensorPacket_t syncPacket = {120, 409};
+
 class nrf24l01p
 {
 public:
@@ -106,7 +117,7 @@ public:
     ErrorCode tx_transmit(uint8_t *tx_payload);
 
     // Check tx_ds or max_rt
-    void tx_irq();
+    ErrorCode tx_irq();
 
     /* Sub Functions */
     void reset();
@@ -123,13 +134,13 @@ public:
     // Static payload lengths
     void rx_set_payload_widths(widths bytes);
 
-private:
     uint8_t read_rx_fifo(uint8_t *rx_payload);
     uint8_t write_tx_fifo(uint8_t *tx_payload);
 
     void flush_rx_fifo();
     void flush_tx_fifo();
 
+private:
     // Clear IRQ pin. Change LOW to HIGH
     void clear_rx_dr();
     void clear_tx_ds();
