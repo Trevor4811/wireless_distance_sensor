@@ -117,16 +117,16 @@ ErrorCode nrf24l01p::tx_transmit(uint8_t *tx_payload)
     return ErrorCode::OKAY;
 }
 
-void nrf24l01p::tx_irq()
+ErrorCode nrf24l01p::tx_irq()
 {
-    uint8_t tx_ds = get_status();
-    tx_ds &= 0x20;
+    uint8_t status = get_status();
 
-    if (tx_ds)
+    if (status & 0x20)
     {
         // TX_DS
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
         clear_tx_ds();
+        return ErrorCode::OKAY;
     }
 
     else
@@ -134,6 +134,11 @@ void nrf24l01p::tx_irq()
         // MAX_RT
         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
         clear_max_rt();
+        if (status & 0x01) // full TX buffer
+        {
+        	flush_tx_fifo();
+        }
+        return ErrorCode::MAX_RETRIES;
     }
 }
 

@@ -117,7 +117,7 @@ public:
     ErrorCode tx_transmit(uint8_t *tx_payload);
 
     // Check tx_ds or max_rt
-    void tx_irq();
+    ErrorCode tx_irq();
 
     /* Sub Functions */
     void reset();

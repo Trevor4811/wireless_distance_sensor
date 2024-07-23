@@ -66,13 +66,14 @@ public:
 		case NRF_IRQ_Pin:
 			if (m_state == State::WAIT_FOR_START_ACK)
 			{
-				radioDriver.tx_irq();
+				if (isOk(radioDriver.tx_irq())) {
 				// ack received
 				m_state = State::RECEIVING_DISTANCES;
 				radioDriver.flush_tx_fifo();
 				radioDriver.power_down();
 				radioDriver.rx_init(2500, _1Mbps);
 				lastRxPacketTimer.start();
+				}
 			}
 			else if (m_state == State::RECEIVING_DISTANCES)
 			{
